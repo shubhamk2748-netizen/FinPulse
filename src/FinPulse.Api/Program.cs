@@ -20,7 +20,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 // 3. Authentication & Authorization (JWT Bearer)
-var jwtSecret = builder.Configuration["Jwt:SecretKey"] ?? "FinPulseEnterpriseSecretKey_2026_HighSecuritySignature_!#992";
+var jwtSecret = builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException("JWT SecretKey is not configured. Set Jwt__SecretKey environment variable.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "FinPulse.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "FinPulse.App";
 
