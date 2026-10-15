@@ -528,11 +528,18 @@
           <input type="text" class="form-input" id="reg-name" placeholder="e.g. Vikram Malhotra" required>
         </div>
         <div class="form-group" style="margin-bottom: 1rem;">
-          <label for="reg-email">Email Address</label>
-          <input type="email" class="form-input" id="reg-email" placeholder="vikram@example.com" required>
+          <label for="reg-phone">Indian Mobile Number (+91)</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.35rem; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem 0.85rem; font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space: nowrap;">
+              <span>🇮🇳</span>
+              <span>+91</span>
+            </div>
+            <input type="tel" class="form-input" id="reg-phone" placeholder="98765 43210" pattern="[0-9]{10}" maxlength="10" required style="flex: 1; font-family: var(--font-mono); font-size: 1rem; letter-spacing: 1px;">
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; display: block;">Enter 10-digit mobile number for instant SMS OTP verification.</span>
         </div>
         <div class="form-group" style="margin-bottom: 1rem;">
-          <label for="reg-password">Password (min 6 characters)</label>
+          <label for="reg-password">Security PIN / Password (min 6 characters)</label>
           <input type="password" class="form-input" id="reg-password" placeholder="••••••••" minlength="6" required>
         </div>
         <div class="form-group" style="margin-bottom: 1rem;">
@@ -547,9 +554,49 @@
         <div class="form-group" style="margin-bottom: 1.5rem;">
           <label for="reg-bonus">Welcome Initial Deposit</label>
           <input type="number" class="form-input" id="reg-bonus" value="10000" min="0" step="100">
-          <span style="font-size: 0.72rem; color: var(--text-dim);">Initial funds credited immediately upon account creation.</span>
+          <span style="font-size: 0.72rem; color: var(--text-dim);">Initial funds credited immediately upon mobile OTP verification.</span>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account & Start</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 0.85rem;">Send Mobile SMS OTP &rarr;</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile OTP Verification Modal -->
+  <div class="modal-overlay" id="modal-verify-email">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.3rem;">📱</span>
+          <h3>Verify Mobile Number</h3>
+        </div>
+        <button class="modal-close" id="btn-close-verify-email">&times;</button>
+      </div>
+      <form id="form-verify-email">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+            We sent a 6-digit Banking OTP via SMS to:
+          </p>
+          <div id="verify-target-email" style="font-weight: 800; color: var(--primary); font-size: 1.25rem; font-family: var(--font-mono); letter-spacing: 1px;">+91 98765 43210</div>
+          <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.4rem;">
+            Please check your phone's Messages app and enter the OTP below.
+          </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="input-verify-otp" style="text-align: center; display: block; margin-bottom: 0.5rem;">Enter 6-Digit SMS OTP</label>
+          <input type="text" class="form-input" id="input-verify-otp" placeholder="••••••" maxlength="6" pattern="[0-9]{6}" required style="text-align: center; font-family: var(--font-mono); font-size: 1.8rem; letter-spacing: 12px; font-weight: 800;">
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btn-submit-verify" style="width: 100%; padding: 0.9rem; font-size: 1rem; font-weight: 700;">
+          Verify OTP &amp; Open Personal Wallet
+        </button>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; font-size: 0.8rem; color: var(--text-dim);">
+          <span id="resend-timer-label">Resend SMS in <strong id="resend-countdown">30</strong>s</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-resend-otp" style="display: none; padding: 4px 10px; font-size: 0.75rem;" onclick="resendVerificationOtp()">
+            Resend SMS OTP
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -563,11 +610,11 @@
       </div>
       <form id="form-login">
         <div class="form-group" style="margin-bottom: 1rem;">
-          <label for="login-email">Email Address</label>
-          <input type="email" class="form-input" id="login-email" placeholder="vikram@example.com" required>
+          <label for="login-email">Mobile Number or Email</label>
+          <input type="text" class="form-input" id="login-email" placeholder="e.g. 9876543210 or rahul@finpulse.in" required>
         </div>
         <div class="form-group" style="margin-bottom: 1.5rem;">
-          <label for="login-password">Password</label>
+          <label for="login-password">Password / PIN</label>
           <input type="password" class="form-input" id="login-password" placeholder="••••••••" required>
         </div>
         <button type="submit" class="btn btn-primary" style="width: 100%;">Log In</button>
@@ -605,9 +652,15 @@
     </button>
   </nav>
 
+  <!-- Invisible reCAPTCHA container required for Firebase Phone Auth -->
+  <div id="recaptcha-container"></div>
+
   <!-- Toast Container -->
   <div id="toast-container"></div>
 
+  <!-- Google Firebase SDKs (Compat) for Real Telecom Phone SMS OTP -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

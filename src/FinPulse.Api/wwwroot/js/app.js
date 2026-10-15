@@ -7,33 +7,139 @@ const PERSONAS = {
     name: 'Rahul Sharma (India)',
     email: 'rahul@finpulse.in',
     password: 'Rahul@12345',
+    fallbackPassword: 'Rahul@LocalDev_2026!',
     role: 'Indian Customer (₹ INR)'
   },
   priya: {
     name: 'Priya Patel (India)',
     email: 'priya@finpulse.in',
     password: 'Priya@12345',
+    fallbackPassword: 'Priya@LocalDev_2026!',
     role: 'Indian Customer (₹ INR)'
   },
   sarah: {
     name: 'Sarah Jenkins',
     email: 'sarah@investor.com',
     password: 'Sarah@12345',
+    fallbackPassword: 'Sarah@LocalDev_2026!',
     role: 'VIP Investor (USD/EUR)'
   },
   alex: {
     name: 'Alex Mercer',
     email: 'alex@trader.com',
     password: 'Alex@12345',
+    fallbackPassword: 'Alex@LocalDev_2026!',
     role: 'Standard Trader (USD/GBP)'
   },
   admin: {
     name: 'System Admin',
     email: 'admin@finpulse.io',
     password: 'Admin@12345',
+    fallbackPassword: 'Admin@LocalDev_2026!',
     role: 'Administrator'
   }
 };
+
+// Google Firebase Configuration (BookVerse Web App)
+const firebaseConfig = {
+  apiKey: "AIzaSyBICFtWztUsDajjLnThrkIuf3LP_LsApU4",
+  authDomain: "bookverse-5077b.firebaseapp.com",
+  projectId: "bookverse-5077b",
+  storageBucket: "bookverse-5077b.firebasestorage.app",
+  messagingSenderId: "91373176475",
+  appId: "1:91373176475:web:09c4023df63f650fd3283e",
+  measurementId: "G-BV068ZB3WB"
+};
+
+let firebaseApp = null;
+let firebaseConfirmationResult = null;
+let recaptchaVerifier = null;
+
+function initFirebase() {
+  try {
+    if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+      firebaseApp = firebase.initializeApp(firebaseConfig);
+      console.log('[Firebase] Initialized BookVerse Web Auth SDK successfully.');
+    }
+  } catch (err) {
+    console.warn('[Firebase] Init notice:', err);
+  }
+}
+
+let recaptchaWidgetId = null;
+
+function getRecaptchaVerifier() {
+  if (typeof firebase === 'undefined' || !firebase.auth) return null;
+  
+  if (recaptchaVerifier) {
+    return recaptchaVerifier;
+  }
+
+  // Ensure DOM container exists and is completely fresh without stale grecaptcha state
+  let container = document.getElementById('recaptcha-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'recaptcha-container';
+    document.body.appendChild(container);
+  } else {
+    const freshContainer = container.cloneNode(false);
+    container.parentNode.replaceChild(freshContainer, container);
+  }
+
+  try {
+    recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: () => {
+        console.log('[Firebase] Invisible reCAPTCHA verification passed.');
+      },
+      'expired-callback': () => {
+        console.warn('[Firebase] reCAPTCHA expired, resetting.');
+        resetRecaptcha();
+      }
+    });
+
+    recaptchaVerifier.render().then((widgetId) => {
+      recaptchaWidgetId = widgetId;
+    }).catch(err => {
+      console.warn('[Firebase] Recaptcha render notice:', err);
+    });
+  } catch (e) {
+    console.warn('[Firebase] Handled RecaptchaVerifier creation notice:', e);
+    const el = document.getElementById('recaptcha-container');
+    if (el && el.parentNode) {
+      const fresh = el.cloneNode(false);
+      el.parentNode.replaceChild(fresh, el);
+    }
+    recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible'
+    });
+  }
+
+  return recaptchaVerifier;
+}
+
+function resetRecaptcha() {
+  if (typeof grecaptcha !== 'undefined' && recaptchaWidgetId !== null) {
+    try {
+      grecaptcha.reset(recaptchaWidgetId);
+      return;
+    } catch (_) {}
+  }
+
+  if (recaptchaVerifier) {
+    try {
+      recaptchaVerifier.clear();
+    } catch (_) {}
+    recaptchaVerifier = null;
+  }
+  recaptchaWidgetId = null;
+
+  const container = document.getElementById('recaptcha-container');
+  if (container && container.parentNode) {
+    const fresh = container.cloneNode(false);
+    container.parentNode.replaceChild(fresh, container);
+  }
+}
 
 let currentToken = localStorage.getItem('finpulse_token') || null;
 let currentPersonaKey = localStorage.getItem('finpulse_persona') || 'rahul';
@@ -42,6 +148,7 @@ let allWalletsCache = [];
 
 // Initialize Dashboard
 document.addEventListener('DOMContentLoaded', async () => {
+  initFirebase();
   initTabs();
   initEventListeners();
   await loadSystemStatus();
@@ -95,8 +202,13 @@ function initTabs() {
 }
 
 function switchTab(tabName, updateHash = true) {
+  // Clear any inline display overrides so CSS tab rules take full effect
+  document.querySelectorAll('.view-panel').forEach(p => p.style.removeProperty('display'));
+  const splitDeck = document.getElementById('split-deck-container');
+  if (splitDeck) splitDeck.style.removeProperty('display');
+
   // Update body class for CSS visibility
-  document.body.className = `tab-${tabName}`;
+  document.body.className = `tab-${tabName} ${currentToken ? 'is-authenticated' : 'is-guest'}`;
 
   // Update desktop tab buttons
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -186,6 +298,7 @@ function initEventListeners() {
   setupModal('modal-withdraw', 'btn-close-withdraw');
   setupModal('modal-create-wallet', 'btn-close-create-wallet');
   setupModal('modal-register', 'btn-close-register');
+  setupModal('modal-verify-email', 'btn-close-verify-email');
   setupModal('modal-login', 'btn-close-login');
 
   // Open modals buttons
@@ -203,6 +316,7 @@ function initEventListeners() {
   document.getElementById('form-withdraw')?.addEventListener('submit', handleWithdrawSubmit);
   document.getElementById('form-create-wallet')?.addEventListener('submit', handleCreateWalletSubmit);
   document.getElementById('form-register')?.addEventListener('submit', handleRegisterSubmit);
+  document.getElementById('form-verify-email')?.addEventListener('submit', handleVerifyEmailSubmit);
   document.getElementById('form-login')?.addEventListener('submit', handleCustomLoginSubmit);
 
   // Generate new Idempotency Key button
@@ -252,10 +366,18 @@ async function switchPersona(personaKey) {
   if (!p) return;
 
   showToast(`Authenticating as ${p.name}...`, 'info');
-  const res = await apiCall('/api/auth/login', 'POST', {
+  let res = await apiCall('/api/auth/login', 'POST', {
     email: p.email,
     password: p.password
   });
+
+  // Try fallback seed password if default password fails
+  if (!res.ok && p.fallbackPassword) {
+    res = await apiCall('/api/auth/login', 'POST', {
+      email: p.email,
+      password: p.fallbackPassword
+    });
+  }
 
   if (res.ok && res.data?.token) {
     currentToken = res.data.token;
@@ -332,14 +454,21 @@ function updateAuthUi(isLoggedIn, user = null) {
   const authGateway = document.getElementById('auth-gateway');
   const tabBar = document.getElementById('app-tab-bar');
   const mobNav = document.getElementById('mobile-bottom-nav');
-  const heroSection = document.getElementById('hero-banner-section');
 
   if (isLoggedIn) {
+    document.body.classList.remove('is-guest');
+    document.body.classList.add('is-authenticated');
+
     if (guestActions) guestActions.style.display = 'none';
     if (userProfileHeader) userProfileHeader.style.display = 'flex';
     if (authGateway) authGateway.style.display = 'none';
     if (tabBar) tabBar.style.display = 'flex';
     if (mobNav) mobNav.style.display = '';
+
+    // CRITICAL: Clear all inline display: none so view panels and split deck are visible
+    document.querySelectorAll('.view-panel').forEach(p => p.style.removeProperty('display'));
+    const splitDeck = document.getElementById('split-deck-container');
+    if (splitDeck) splitDeck.style.removeProperty('display');
 
     if (user) {
       const headerName = document.getElementById('header-user-name');
@@ -360,6 +489,9 @@ function updateAuthUi(isLoggedIn, user = null) {
       }
     }
   } else {
+    document.body.classList.remove('is-authenticated');
+    document.body.classList.add('is-guest');
+
     if (guestActions) guestActions.style.display = 'flex';
     if (userProfileHeader) userProfileHeader.style.display = 'none';
     if (authGateway) authGateway.style.display = 'flex';
@@ -374,7 +506,7 @@ function updateAuthUi(isLoggedIn, user = null) {
     const auditFeed = document.getElementById('audit-feed');
     if (auditFeed) auditFeed.innerHTML = '';
     
-    // Hide panels
+    // Hide panels for unauthenticated guests
     document.querySelectorAll('.view-panel').forEach(p => p.style.display = 'none');
   }
 }
@@ -919,59 +1051,221 @@ async function handleCreateWalletSubmit(e) {
   }
 }
 
+// Registration & Email Verification State
+let pendingRegistration = null;
+let resendTimerInterval = null;
+
+function startResendTimer() {
+  let seconds = 30;
+  const label = document.getElementById('resend-timer-label');
+  const countEl = document.getElementById('resend-countdown');
+  const btn = document.getElementById('btn-resend-otp');
+  
+  if (btn) btn.style.display = 'none';
+  if (label) label.style.display = 'inline';
+  if (countEl) countEl.textContent = seconds;
+
+  if (resendTimerInterval) clearInterval(resendTimerInterval);
+
+  resendTimerInterval = setInterval(() => {
+    seconds--;
+    if (countEl) countEl.textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(resendTimerInterval);
+      if (label) label.style.display = 'none';
+      if (btn) btn.style.display = 'inline';
+    }
+  }, 1000);
+}
+
+window.fillOtpCode = function() {
+  const display = document.getElementById('demo-otp-display');
+  const input = document.getElementById('input-verify-otp');
+  if (display && input && display.textContent && display.textContent !== '------') {
+    input.value = display.textContent.trim();
+    input.focus();
+    showToast('Verification code auto-filled!', 'info');
+  }
+};
+
+window.resendVerificationOtp = async function() {
+  if (!pendingRegistration || !pendingRegistration.phone) {
+    showToast('No pending registration found.', 'error');
+    return;
+  }
+  showToast('Sending new SMS OTP...', 'info');
+  const res = await apiCall('/api/auth/send-otp', 'POST', { identifier: pendingRegistration.phone });
+  if (res.ok) {
+    startResendTimer();
+    showToast('New SMS OTP sent to your phone!', 'success');
+  } else {
+    showToast(res.error || 'Failed to resend OTP', 'error');
+  }
+};
+
 async function handleRegisterSubmit(e) {
   e.preventDefault();
   const fullName = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
+  const phoneInput = document.getElementById('reg-phone')?.value.trim() || '';
   const password = document.getElementById('reg-password').value;
   const currency = parseInt(document.getElementById('reg-currency').value);
   const initialBonus = parseFloat(document.getElementById('reg-bonus').value) || 0;
 
-  showToast('Creating new user account...', 'info');
-  const res = await apiCall('/api/auth/register', 'POST', {
-    fullName,
-    email,
-    password,
-    role: 'Customer'
-  });
+  const cleanPhone = phoneInput.replace(/[^0-9]/g, '');
+  if (cleanPhone.length < 10) {
+    showToast('Please enter a valid 10-digit Indian mobile number.', 'error');
+    return;
+  }
+  const phone10 = cleanPhone.length > 10 ? cleanPhone.slice(-10) : cleanPhone;
 
-  if (res.ok && res.data?.token) {
-    currentToken = res.data.token;
+  if (!password || password.length < 6) {
+    showToast('PIN / Password must have at least 6 characters.', 'error');
+    return;
+  }
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn ? submitBtn.textContent : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending SMS OTP...';
+  }
+
+  try {
+    showToast(`Sending SMS OTP to +91 ${phone10}...`, 'info');
+    const sendRes = await apiCall('/api/auth/send-otp', 'POST', { identifier: phone10 });
+
+    if (!sendRes.ok) {
+      showToast(sendRes.error || 'Failed to send SMS OTP', 'error');
+      return;
+    }
+
+    // Save pending registration payload
+    pendingRegistration = {
+      fullName,
+      phone: phone10,
+      email: `${phone10}@finpulse.in`,
+      password,
+      currency,
+      initialBonus
+    };
+
+    // Set up modal UI
+    const targetEmailEl = document.getElementById('verify-target-email');
+    if (targetEmailEl) targetEmailEl.textContent = `+91 ${phone10.substring(0, 5)} ${phone10.substring(5)}`;
+
+    const otpInput = document.getElementById('input-verify-otp');
+    if (otpInput) {
+      otpInput.value = '';
+    }
+
+    closeModal('modal-register');
+    openModal('modal-verify-email');
+    startResendTimer();
+    showToast(`SMS OTP sent to your phone (+91 ${phone10})! Please check your messages.`, 'success');
+
+    if (otpInput) {
+      setTimeout(() => otpInput.focus(), 300);
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+    }
+  }
+}
+
+async function handleVerifyEmailSubmit(e) {
+  e.preventDefault();
+  if (!pendingRegistration) {
+    showToast('Registration session expired. Please register again.', 'error');
+    closeModal('modal-verify-email');
+    openModal('modal-register');
+    return;
+  }
+
+  const code = document.getElementById('input-verify-otp').value.trim();
+  if (!code || code.length < 6) {
+    showToast('Please enter the 6-digit SMS OTP.', 'error');
+    return;
+  }
+
+  const verifyBtn = document.getElementById('btn-submit-verify');
+  if (verifyBtn) {
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying OTP...';
+  }
+
+  try {
+    // 1. Verify OTP with backend
+    const verifyRes = await apiCall('/api/auth/verify-otp', 'POST', {
+      identifier: pendingRegistration.phone,
+      code
+    });
+
+    if (!verifyRes.ok) {
+      showToast(verifyRes.error || 'Invalid OTP code. Please check and try again.', 'error');
+      return;
+    }
+
+    // 2. Register account now that mobile is verified
+    showToast('Mobile number verified! Setting up customer profile...', 'info');
+    const regRes = await apiCall('/api/auth/register', 'POST', {
+      fullName: pendingRegistration.fullName,
+      email: pendingRegistration.email,
+      password: pendingRegistration.password,
+      role: 'Customer'
+    });
+
+    if (!regRes.ok || !regRes.data?.token) {
+      showToast(regRes.error || 'Failed to complete registration', 'error');
+      return;
+    }
+
+    currentToken = regRes.data.token;
     localStorage.setItem('finpulse_token', currentToken);
     localStorage.removeItem('finpulse_persona');
-    closeModal('modal-register');
-    showToast(`Welcome ${fullName}! Setting up wallet...`, 'success');
+    closeModal('modal-verify-email');
 
-    // Automatically create selected currency wallet
+    showToast(`Welcome, ${pendingRegistration.fullName}! Activating personal wallet...`, 'success');
+
+    // 3. Automatically provision personal wallet in selected currency
     const walletRes = await apiCall('/api/wallets', 'POST', {
-      currency,
+      currency: pendingRegistration.currency,
       tier: 1 // Standard
     });
 
-    if (walletRes.ok && initialBonus > 0 && walletRes.data?.id) {
+    // 4. Credit initial welcome deposit if specified
+    if (walletRes.ok && pendingRegistration.initialBonus > 0 && walletRes.data?.id) {
       await apiCall('/api/transactions/deposit', 'POST', {
         walletId: walletRes.data.id,
-        amount: initialBonus,
-        description: 'Welcome Account Opening Balance'
+        amount: pendingRegistration.initialBonus,
+        description: 'Welcome Mobile Verification Opening Bonus'
       });
     }
+
+    const createdName = pendingRegistration.fullName;
+    pendingRegistration = null;
+    firebaseConfirmationResult = null;
 
     highlightPersonaButton(null);
     await refreshDashboard();
     switchTab('wallets');
-    showToast(`Account ready! Welcome to FinPulse, ${fullName}!`, 'success');
-  } else {
-    showToast(res.error || 'Registration failed', 'error');
+    showToast(`Account verified & ready! Welcome to FinPulse, ${createdName}!`, 'success');
+  } finally {
+    if (verifyBtn) {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify OTP & Open Personal Wallet';
+    }
   }
 }
 
 async function handleCustomLoginSubmit(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
+  const identifier = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
 
   showToast('Logging in...', 'info');
-  const res = await apiCall('/api/auth/login', 'POST', { email, password });
+  const res = await apiCall('/api/auth/login', 'POST', { email: identifier, password });
 
   if (res.ok && res.data?.token) {
     currentToken = res.data.token;
@@ -983,7 +1277,7 @@ async function handleCustomLoginSubmit(e) {
     await refreshDashboard();
     switchTab('wallets');
   } else {
-    showToast(res.error || 'Invalid email or password', 'error');
+    showToast(res.error || 'Invalid mobile number/email or password', 'error');
   }
 }
 

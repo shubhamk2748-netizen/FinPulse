@@ -1224,42 +1224,58 @@ table.data-table tr:hover td {
   }
 }
 
-/* Default state or body.tab-wallets */
+/* Guest vs Authenticated Visibility */
+body.is-guest .view-panel,
+body.is-guest #split-deck-container,
+body.is-guest #app-tab-bar,
+body.is-guest #mobile-bottom-nav {
+  display: none !important;
+}
+
+body.is-authenticated #auth-gateway {
+  display: none !important;
+}
+
+body.is-authenticated #app-tab-bar {
+  display: flex !important;
+}
+
+/* Tab: Wallets */
 body.tab-wallets #view-wallets,
 body:not([class*="tab-"]) #view-wallets {
   display: block;
 }
 
-/* Tab: Transfer */
+/* Tab: Transfer (Send Money) */
 body.tab-transfer #split-deck-container {
-  display: block;
+  display: block !important;
 }
 body.tab-transfer #view-transfer {
-  display: flex;
+  display: flex !important;
   max-width: 680px;
   margin: 0 auto;
 }
 
 /* Tab: Passbook */
 body.tab-passbook #split-deck-container {
-  display: block;
+  display: block !important;
 }
 body.tab-passbook #view-passbook {
-  display: block;
+  display: block !important;
   width: 100%;
 }
 
 /* Tab: Concurrency Stress Test */
 body.tab-concurrency #view-concurrency {
-  display: block;
+  display: block !important;
 }
 
 /* Tab: Audit Logs */
 body.tab-audit #split-deck-container {
-  display: block;
+  display: block !important;
 }
 body.tab-audit #view-audit {
-  display: block;
+  display: block !important;
   width: 100%;
 }
 
