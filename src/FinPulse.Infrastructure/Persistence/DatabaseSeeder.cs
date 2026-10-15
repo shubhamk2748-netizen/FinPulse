@@ -12,6 +12,14 @@ public static class DatabaseSeeder
         // Automatically ensure SQLite DB schema is created
         await context.Database.EnsureCreatedAsync();
 
+        // Read seed passwords from env vars (set in Railway/production)
+        // Fallback values are ONLY for local development
+        var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD") ?? "Admin@LocalDev_2026!";
+        var sarahPassword = Environment.GetEnvironmentVariable("SEED_SARAH_PASSWORD") ?? "Sarah@LocalDev_2026!";
+        var alexPassword  = Environment.GetEnvironmentVariable("SEED_ALEX_PASSWORD")  ?? "Alex@LocalDev_2026!";
+        var rahulPassword = Environment.GetEnvironmentVariable("SEED_RAHUL_PASSWORD") ?? "Rahul@LocalDev_2026!";
+        var priyaPassword = Environment.GetEnvironmentVariable("SEED_PRIYA_PASSWORD") ?? "Priya@LocalDev_2026!";
+
         // Ensure Indian Rupee (INR) users exist
         if (!await context.Users.AnyAsync(u => u.Email == "rahul@finpulse.in"))
         {
@@ -19,7 +27,7 @@ public static class DatabaseSeeder
                 Guid.Parse("44444444-4444-4444-4444-444444444444"),
                 "rahul@finpulse.in",
                 "Rahul Sharma (India)",
-                passwordHasher.HashPassword("Rahul@12345"),
+                passwordHasher.HashPassword(rahulPassword),
                 "Customer");
 
             var rahulInrWallet = new Wallet(
@@ -34,7 +42,7 @@ public static class DatabaseSeeder
                 Guid.Parse("55555555-5555-5555-5555-555555555555"),
                 "priya@finpulse.in",
                 "Priya Patel (India)",
-                passwordHasher.HashPassword("Priya@12345"),
+                passwordHasher.HashPassword(priyaPassword),
                 "Customer");
 
             var priyaInrWallet = new Wallet(
@@ -69,21 +77,21 @@ public static class DatabaseSeeder
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "admin@finpulse.io",
             "System Administrator",
-            passwordHasher.HashPassword("Admin@12345"),
+            passwordHasher.HashPassword(adminPassword),
             "Admin");
 
         var sarah = new User(
             Guid.Parse("22222222-2222-2222-2222-222222222222"),
             "sarah@investor.com",
             "Sarah Jenkins (Investor)",
-            passwordHasher.HashPassword("Sarah@12345"),
+            passwordHasher.HashPassword(sarahPassword),
             "Customer");
 
         var alex = new User(
             Guid.Parse("33333333-3333-3333-3333-333333333333"),
             "alex@trader.com",
             "Alex Mercer (Trader)",
-            passwordHasher.HashPassword("Alex@12345"),
+            passwordHasher.HashPassword(alexPassword),
             "Customer");
 
         context.Users.AddRange(admin, sarah, alex);
