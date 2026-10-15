@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "dotnet FinPulse.Api.dll"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
