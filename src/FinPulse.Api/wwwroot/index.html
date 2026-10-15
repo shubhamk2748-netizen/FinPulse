@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinPulse | High-Throughput Digital Wallet & OCC Engine</title>
+  <meta name="description" content="Enterprise Digital Wallet & Financial Transaction Processing API with CQRS, Optimistic Concurrency Control, and Idempotency Guarantees.">
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300f2fe'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg>">
+</head>
+<body>
+
+  <!-- Executive Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="/" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <span class="brand-title">FinPulse</span>
+          <span class="brand-badge">Engine v1.0</span>
+        </div>
+      </a>
+
+      <!-- Status & Health -->
+      <div class="header-status">
+        <div class="status-badge" id="system-health-badge">
+          <span class="pulse-dot" id="health-dot"></span>
+          <span id="health-text">Healthy • SQLite / EF Core</span>
+        </div>
+      </div>
+
+      <!-- Auth Actions & User Profile -->
+      <div class="header-actions">
+        <!-- Guest State Actions (shown when not logged in) -->
+        <div id="guest-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="btn btn-primary btn-sm" id="btn-open-register" style="display: flex; align-items: center; gap: 0.4rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            + Create Account
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-open-login">
+            Log In
+          </button>
+        </div>
+
+        <!-- Logged In User State (shown when authenticated) -->
+        <div id="user-profile-header" style="display: none; align-items: center; gap: 0.75rem;">
+          <div class="user-avatar-pill">
+            <span class="user-avatar-circle" id="header-avatar-circle">U</span>
+            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+              <span id="header-user-name" style="font-weight: 700; font-size: 0.85rem; color: var(--text-main);">User</span>
+              <span id="header-user-role" style="font-size: 0.7rem; color: var(--text-dim);">Customer</span>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" id="btn-logout" title="Sign out of your account" onclick="handleLogout()">
+            Log Out
+          </button>
+        </div>
+
+        <a href="/swagger" target="_blank" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.4rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Docs
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Welcome & Auth Gateway (for new visitors on LinkedIn / Live server) -->
+    <section class="auth-gateway-card glass" id="auth-gateway" style="display: none;">
+      <div class="gateway-badge">
+        <span class="pulse-dot"></span>
+        <span>FinPulse • Live Production Showcase</span>
+      </div>
+      <h2>Personal Digital Wallet & <span>Atomic Ledger</span></h2>
+      <p>
+        Create your free personal account to get your multi-currency wallet with instant opening balance, or sign in to access your secure transactions with Optimistic Concurrency Control.
+      </p>
+
+      <div class="gateway-buttons">
+        <button class="btn btn-primary" onclick="openModal('modal-register')" style="padding: 0.85rem 1.6rem; font-size: 1rem; font-weight: 700;">
+          🚀 Create Free Account
+        </button>
+        <button class="btn btn-secondary" onclick="openModal('modal-login')" style="padding: 0.85rem 1.4rem; font-size: 1rem;">
+          🔑 Sign In
+        </button>
+      </div>
+
+      <!-- Quick 1-Click Demo Testing for Recruiters on LinkedIn -->
+      <div class="recruiter-quicktest-box">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">LinkedIn / Recruiter Quick Test (No Sign-up required):</span>
+        <div class="persona-bar-compact">
+          <button class="persona-chip" onclick="switchPersona('rahul')">
+            <span class="persona-avatar-sm" style="background: #f97316;">RS</span>
+            <span>Test as Rahul (₹ INR)</span>
+          </button>
+          <button class="persona-chip" onclick="switchPersona('priya')">
+            <span class="persona-avatar-sm" style="background: #ec4899;">PP</span>
+            <span>Test as Priya (₹ INR)</span>
+          </button>
+          <button class="persona-chip" onclick="switchPersona('sarah')">
+            <span class="persona-avatar-sm" style="background: #3b82f6;">SJ</span>
+            <span>Test as Sarah (VIP USD)</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hero / System Overview -->
+    <section class="hero-banner" id="hero-banner-section">
+      <div class="hero-grid">
+        <div class="hero-text">
+          <h1>Modern Digital <span>Wallet Hub</span></h1>
+          <p id="hero-user-subtitle">
+            Enterprise multi-currency digital wallet & instant transfer engine with Optimistic Concurrency Control and real-time ledger settlement.
+          </p>
+          <div class="hero-features">
+            <div class="hero-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Sub-millisecond OCC Invariant Validation</span>
+            </div>
+            <div class="hero-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>SHA-256 Idempotency Cache</span>
+            </div>
+            <div class="hero-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Immutable Audit Ledger</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-stats-panel">
+          <div class="mini-stat-card">
+            <div class="mini-stat-label">User Portfolio Value</div>
+            <div class="mini-stat-val" id="stat-total-balance">₹0.00</div>
+            <div class="mini-stat-sub">Across multi-currency wallets</div>
+          </div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-label">Transactions Executed</div>
+            <div class="mini-stat-val" id="stat-tx-count">0</div>
+            <div class="mini-stat-sub">Audit verified ledger</div>
+          </div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-label">OCC Safety Invariant</div>
+            <div class="mini-stat-val" id="stat-occ-safety" style="color: var(--primary);">100% Guaranteed</div>
+            <div class="mini-stat-sub">Zero lost updates</div>
+          </div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-label">Process Memory / Uptime</div>
+            <div class="mini-stat-val" id="stat-memory" style="font-size: 1.25rem;">0 MB</div>
+            <div class="mini-stat-sub" id="stat-uptime">0s</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs / View Switcher (Desktop & Mobile) -->
+    <nav class="app-tab-bar" id="app-tab-bar" aria-label="Dashboard views">
+      <button class="tab-btn active" data-tab="wallets" id="tab-wallets">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span>My Wallets</span>
+      </button>
+      <button class="tab-btn" data-tab="transfer" id="tab-transfer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        <span>Send Money</span>
+      </button>
+      <button class="tab-btn" data-tab="passbook" id="tab-passbook">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Passbook</span>
+      </button>
+      <button class="tab-btn" data-tab="concurrency" id="tab-concurrency">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>OCC Stress Test</span>
+      </button>
+      <button class="tab-btn" data-tab="audit" id="tab-audit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Audit Trail</span>
+      </button>
+      <button class="tab-btn tab-btn-all" data-tab="all" id="tab-all">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>All Views</span>
+      </button>
+    </nav>
+
+    <!-- Multi-Currency Wallets Deck Panel -->
+    <section class="view-panel active" id="view-wallets">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>My Multi-Currency Wallets</h2>
+          <span class="badge-count" id="wallet-count-badge">Loading...</span>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <div style="font-size: 0.82rem; color: var(--text-dim);" id="user-role-badge">Authenticating...</div>
+          <button class="btn btn-primary btn-sm" id="btn-new-wallet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Open New Wallet
+          </button>
+        </div>
+      </div>
+
+      <div class="wallets-deck" id="wallets-deck">
+        <!-- Wallet cards dynamically injected here -->
+      </div>
+    </section>
+
+    <!-- FLAGSHIP SECTION: Concurrency & Race Condition Visualizer Panel -->
+    <section class="concurrency-studio view-panel" id="view-concurrency">
+      <div class="section-title">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); padding: 6px; border-radius: var(--radius-sm);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00f2fe" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <div>
+            <h2>Concurrency & Race Condition Visualizer</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              Live architectural stress test: triggers simultaneous concurrent debits against the same account to demonstrate OCC token rotation and double-spending prevention.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Controls -->
+        <div class="studio-controls">
+          <div class="form-group">
+            <label for="sim-target-wallet">Target Wallet Account</label>
+            <select class="form-select" id="sim-target-wallet">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="sim-amount">Concurrent Debit Amount per Thread ($)</label>
+            <input type="number" class="form-input" id="sim-amount" value="500" min="1" step="0.01">
+            <span style="font-size: 0.72rem; color: var(--text-dim);">
+              Tip: Set an amount near or above your balance to witness invariant guard rejection!
+            </span>
+          </div>
+
+          <button class="btn btn-primary" id="btn-run-race" style="margin-top: 0.5rem; padding: 0.85rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Run Concurrent Debit Simulation
+          </button>
+        </div>
+
+        <!-- Simulation Visualization Output -->
+        <div class="simulation-display">
+          <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); font-weight: 700;">
+            Live Thread Interleaving Execution
+          </div>
+
+          <div class="threads-comparison">
+            <div class="thread-box" id="thread-1-box">
+              <div class="thread-header">
+                <span class="thread-title">Worker Thread 01</span>
+                <span class="thread-status-badge">Standby</span>
+              </div>
+              <div class="thread-body">
+                Awaiting concurrency test execution...
+              </div>
+            </div>
+
+            <div class="thread-box" id="thread-2-box">
+              <div class="thread-header">
+                <span class="thread-title">Worker Thread 02</span>
+                <span class="thread-status-badge">Standby</span>
+              </div>
+              <div class="thread-body">
+                Awaiting concurrency test execution...
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-summary-box" id="sim-summary-box" style="display: none;">
+            <!-- Simulation Summary inserted dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Split Deck / Panels: Atomic Transfers & Immutable Ledger -->
+    <div class="split-deck" id="split-deck-container">
+      
+      <!-- Atomic Transfer Form Panel -->
+      <section class="transfer-card glass view-panel" id="view-transfer">
+        <div class="section-title">
+          <h2>💸 Instant Money Transfer</h2>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -0.5rem;">
+          Instant fee-free transfer. Select a recipient contact or enter any wallet account:
+        </p>
+
+        <form id="transfer-form" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="form-group">
+            <label for="transfer-source-wallet">From Account (Source Wallet)</label>
+            <select class="form-select" id="transfer-source-wallet" required></select>
+          </div>
+
+          <div class="form-group">
+            <label for="transfer-dest-account">To Payee (Select Contact or Enter Account ID)</label>
+            <div class="recipient-chips-grid" style="margin-bottom: 0.5rem;">
+              <div class="recipient-chip" onclick="selectRecipient('WAL-INR-334411', 'Priya Patel')">
+                <div class="recipient-chip-avatar" style="background: linear-gradient(135deg, #ff0080, #7928ca);">P</div>
+                <div style="display:flex; flex-direction:column; overflow:hidden;">
+                  <span class="recipient-chip-name">Priya Patel</span>
+                  <span class="recipient-chip-acc">₹ WAL-INR-334411</span>
+                </div>
+              </div>
+              <div class="recipient-chip" onclick="selectRecipient('WAL-INR-881920', 'Rahul Sharma')">
+                <div class="recipient-chip-avatar" style="background: linear-gradient(135deg, #00f2fe, #4facfe);">R</div>
+                <div style="display:flex; flex-direction:column; overflow:hidden;">
+                  <span class="recipient-chip-name">Rahul Sharma</span>
+                  <span class="recipient-chip-acc">₹ WAL-INR-881920</span>
+                </div>
+              </div>
+              <div class="recipient-chip" onclick="selectRecipient('WAL-USD-992140', 'Alex Mercer')">
+                <div class="recipient-chip-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">A</div>
+                <div style="display:flex; flex-direction:column; overflow:hidden;">
+                  <span class="recipient-chip-name">Alex Mercer</span>
+                  <span class="recipient-chip-acc">$ WAL-USD-992140</span>
+                </div>
+              </div>
+              <div class="recipient-chip" onclick="selectRecipient('WAL-USD-108274', 'Sarah Jenkins')">
+                <div class="recipient-chip-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">S</div>
+                <div style="display:flex; flex-direction:column; overflow:hidden;">
+                  <span class="recipient-chip-name">Sarah Jenkins</span>
+                  <span class="recipient-chip-acc">$ WAL-USD-108274</span>
+                </div>
+              </div>
+            </div>
+            <input type="text" class="form-input" id="transfer-dest-account" placeholder="Enter recipient account number (e.g. WAL-INR-334411)" required>
+          </div>
+
+          <div class="form-group">
+            <label for="transfer-amount">Transfer Amount</label>
+            <input type="number" class="form-input" id="transfer-amount" placeholder="Enter transfer amount (e.g. 500)" min="0.01" step="0.01" required>
+            <div class="amount-presets-row">
+              <span class="preset-chip" onclick="setTransferAmount(100)">+100</span>
+              <span class="preset-chip" onclick="setTransferAmount(500)">+500</span>
+              <span class="preset-chip" onclick="setTransferAmount(1000)">+1,000</span>
+              <span class="preset-chip" onclick="setTransferAmount(2000)">+2,000</span>
+              <span class="preset-chip" onclick="setTransferAmount(5000)">+5,000</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="transfer-note">Payment Message / Note (Optional)</label>
+            <input type="text" class="form-input" id="transfer-note" placeholder="Add a note (e.g. Rent, Groceries, Dinner settlement)">
+          </div>
+
+          <!-- RFC Idempotency Header Box -->
+          <div class="form-group">
+            <label>RFC Idempotency Key (SHA-256 Deduplication)</label>
+            <div class="idempotency-badge">
+              <input type="text" id="transfer-idempotency-key" style="background: transparent; border: none; color: var(--primary); font-family: var(--font-mono); font-size: 0.75rem; width: 85%; outline: none;" readonly>
+              <button type="button" id="btn-new-idempotency-key" class="btn btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.65rem;" title="Rotate Idempotency Key">New</button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1; font-weight: 700; padding: 0.9rem; font-size: 0.95rem;">⚡ Pay Securely</button>
+            <button type="button" class="btn btn-secondary" id="btn-test-idempotency" title="Retries request with identical idempotency key to prove deduplication cache">Test Replay</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Ledger Transactions Table Panel -->
+      <section class="table-card glass view-panel" id="view-passbook">
+        <div class="section-header" style="margin-bottom: 0.85rem;">
+          <div class="section-title">
+            <h2>📜 Passbook & Transaction History</h2>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadTransactions(); loadAuditLogs(); showToast('Passbook updated', 'info');">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Payee / Party</th>
+                <th>Amount</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="tx-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Immutable State Audit Logs Panel -->
+      <section class="table-card glass view-panel" id="view-audit">
+        <div class="section-header" style="margin-bottom: 0.85rem;">
+          <div class="section-title">
+            <h2>🛡️ Immutable State Audit Logs</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              Deep JSON diffing of database state transitions recorded in EF Core SaveChangesAsync
+            </p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAuditLogs(); showToast('Audit trail refreshed', 'info');">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="audit-container" id="audit-feed">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Deposit Modal -->
+  <div class="modal-overlay" id="modal-deposit">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Deposit Funds</h3>
+        <button class="modal-close" id="btn-close-deposit">&times;</button>
+      </div>
+      <form id="form-deposit">
+        <input type="hidden" id="dep-wallet-id">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label>Target Wallet</label>
+          <div id="dep-wallet-label" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary);"></div>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="dep-amount">Deposit Amount</label>
+          <input type="number" class="form-input" id="dep-amount" min="1" step="0.01" value="1000" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="dep-desc">Deposit Memo</label>
+          <input type="text" class="form-input" id="dep-desc" value="Liquidity injection">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Confirm Deposit</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Withdraw Modal -->
+  <div class="modal-overlay" id="modal-withdraw">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Withdraw Funds</h3>
+        <button class="modal-close" id="btn-close-withdraw">&times;</button>
+      </div>
+      <form id="form-withdraw">
+        <input type="hidden" id="wd-wallet-id">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label>Source Wallet</label>
+          <div id="wd-wallet-label" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--danger);"></div>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="wd-amount">Withdrawal Amount</label>
+          <input type="number" class="form-input" id="wd-amount" min="1" step="0.01" value="250" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="wd-desc">Withdrawal Memo</label>
+          <input type="text" class="form-input" id="wd-desc" value="External treasury transfer">
+        </div>
+        <button type="submit" class="btn btn-danger" style="width: 100%;">Confirm Withdrawal</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Wallet Modal -->
+  <div class="modal-overlay" id="modal-create-wallet">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Open New Multi-Currency Wallet</h3>
+        <button class="modal-close" id="btn-close-create-wallet">&times;</button>
+      </div>
+      <form id="form-create-wallet">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="new-wallet-currency">Currency Code</label>
+          <select class="form-select" id="new-wallet-currency">
+            <option value="1">USD - United States Dollar</option>
+            <option value="2">EUR - Euro</option>
+            <option value="3">GBP - British Pound</option>
+            <option value="4">JPY - Japanese Yen</option>
+            <option value="5">CAD - Canadian Dollar</option>
+            <option value="6">INR - Indian Rupee (₹)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="new-wallet-tier">Wallet Tier & Limits</label>
+          <select class="form-select" id="new-wallet-tier">
+            <option value="1">Standard Tier (Daily Limit: $5,000)</option>
+            <option value="2">Premium Tier (Daily Limit: $25,000)</option>
+            <option value="3">VIP Tier (Daily Limit: $100,000)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Wallet</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sign Up / Register Modal -->
+  <div class="modal-overlay" id="modal-register">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New FinPulse Account</h3>
+        <button class="modal-close" id="btn-close-register">&times;</button>
+      </div>
+      <form id="form-register">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="reg-name">Full Name</label>
+          <input type="text" class="form-input" id="reg-name" placeholder="e.g. Vikram Malhotra" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="reg-email">Email Address</label>
+          <input type="email" class="form-input" id="reg-email" placeholder="vikram@example.com" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="reg-password">Password (min 6 characters)</label>
+          <input type="password" class="form-input" id="reg-password" placeholder="••••••••" minlength="6" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="reg-currency">Default Wallet Currency</label>
+          <select class="form-select" id="reg-currency">
+            <option value="6" selected>INR - Indian Rupee (₹)</option>
+            <option value="1">USD - United States Dollar ($)</option>
+            <option value="2">EUR - Euro (€)</option>
+            <option value="3">GBP - British Pound (£)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="reg-bonus">Welcome Initial Deposit</label>
+          <input type="number" class="form-input" id="reg-bonus" value="10000" min="0" step="100">
+          <span style="font-size: 0.72rem; color: var(--text-dim);">Initial funds credited immediately upon account creation.</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account & Start</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="modal-login">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Log In to FinPulse</h3>
+        <button class="modal-close" id="btn-close-login">&times;</button>
+      </div>
+      <form id="form-login">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="login-email">Email Address</label>
+          <input type="email" class="form-input" id="login-email" placeholder="vikram@example.com" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="login-password">Password</label>
+          <input type="password" class="form-input" id="login-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Log In</button>
+        <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.85rem; text-align: center;">
+          <span style="font-size: 0.78rem; color: var(--text-dim);">Recruiter 1-Click Demo:</span>
+          <button type="button" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.4rem;" onclick="closeModal('modal-login'); switchPersona('rahul');">
+            ⚡ Quick Sign In as Rahul (Demo Account)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar (Phone-friendly App Bar) -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <button class="mobile-nav-item active" data-tab="wallets" id="mob-tab-wallets">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      <span>Wallets</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="transfer" id="mob-tab-transfer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      <span>Transfer</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="passbook" id="mob-tab-passbook">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Passbook</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="concurrency" id="mob-tab-concurrency">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span>OCC Test</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="audit" id="mob-tab-audit">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Audit</span>
+    </button>
+  </nav>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

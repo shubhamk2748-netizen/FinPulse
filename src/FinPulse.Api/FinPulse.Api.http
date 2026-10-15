@@ -1,0 +1,6 @@
+@FinPulse.Api_HostAddress = http://localhost:5102
+
+GET {{FinPulse.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
