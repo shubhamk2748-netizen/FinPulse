@@ -20,10 +20,13 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 // 3. Authentication & Authorization (JWT Bearer)
+// Read JWT config — try multiple formats (Railway, Docker, standard ASP.NET Core)
 var jwtSecret = builder.Configuration["Jwt:SecretKey"]
-    ?? throw new InvalidOperationException("JWT SecretKey is not configured. Set Jwt__SecretKey environment variable.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "FinPulse.Api";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "FinPulse.App";
+    ?? Environment.GetEnvironmentVariable("Jwt__SecretKey")
+    ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+    ?? "FinPulseEnterpriseSecretKey_2026_HighSecuritySignature_!#992";
+var jwtIssuer  = builder.Configuration["Jwt:Issuer"]   ?? Environment.GetEnvironmentVariable("JWT_ISSUER")   ?? "FinPulse.Api";
+var jwtAudience= builder.Configuration["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "FinPulse.App";
 
 builder.Services.AddAuthentication(options =>
 {

@@ -50,10 +50,13 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public string GenerateToken(User user)
     {
-        var secretKey = _configuration["Jwt:SecretKey"] ?? "FinPulseEnterpriseSecretKey_2026_HighSecuritySignature_!#992";
-        var issuer = _configuration["Jwt:Issuer"] ?? "FinPulse.Api";
-        var audience = _configuration["Jwt:Audience"] ?? "FinPulse.App";
-        var expiryMinutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var minutes) ? minutes : 1440; // 24 hours
+        var secretKey = _configuration["Jwt:SecretKey"]
+            ?? Environment.GetEnvironmentVariable("Jwt__SecretKey")
+            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+            ?? "FinPulseEnterpriseSecretKey_2026_HighSecuritySignature_!#992";
+        var issuer = _configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "FinPulse.Api";
+        var audience = _configuration["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "FinPulse.App";
+        var expiryMinutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"] ?? Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES"), out var minutes) ? minutes : 1440; // 24 hours
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
